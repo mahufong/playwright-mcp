@@ -657,7 +657,7 @@ index 81072e1..c1c6dd7 100644
 -import * as playwright from 'playwright';
 +//import * as playwright from 'playwright';
 +import { chromium, firefox, webkit } from 'playwright-extra';
-+import StealthPlugin from 'playwright-extra-plugin-stealth';
++import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 +
 +// Add the stealth plugin to chromium
 +chromium.use(StealthPlugin());
