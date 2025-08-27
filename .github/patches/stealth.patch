@@ -647,33 +647,82 @@ index bf1a012..37147a6 100644
    "devDependencies": {
      "@anthropic-ai/sdk": "^0.57.0",
 diff --git a/src/browserContextFactory.ts b/src/browserContextFactory.ts
-index 81072e1..90ab3e7 100644
+index 81072e1..a4f21f1 100644
 --- a/src/browserContextFactory.ts
 +++ b/src/browserContextFactory.ts
-@@ -19,6 +19,18 @@ import net from 'net';
+@@ -19,6 +19,17 @@ import net from 'net';
  import path from 'path';
  
  import * as playwright from 'playwright';
-+
-+// @ts-ignore
-+import { chromium as chromiumExtra } from 'playwright-extra';
-+// @ts-ignore
++import { chromium as chromiumExtra, firefox as firefoxExtra, webkit as webkitExtra } from 'playwright-extra';
 +import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 +
 +chromiumExtra.use(StealthPlugin());
 +
-+(playwright as any).chromium = chromiumExtra;
-+
-+
++const customLaunchers: any = {
++  chromium: chromiumExtra,
++  firefox: firefoxExtra,
++  webkit: webkitExtra,
++};
 +
  // @ts-ignore
  import { registryDirectory } from 'playwright-core/lib/server/registry/index';
  // @ts-ignore
+@@ -104,13 +115,13 @@ class IsolatedContextFactory extends BaseContextFactory {
+ 
+   protected override async _doObtainBrowser(clientInfo: ClientInfo): Promise<playwright.Browser> {
+     await injectCdpPort(this.config.browser);
+-    const browserType = playwright[this.config.browser.browserName];
++    const browserType = customLaunchers[this.config.browser.browserName];
+     return browserType.launch({
+       tracesDir: await startTraceServer(this.config, clientInfo.rootPath),
+       ...this.config.browser.launchOptions,
+       handleSIGINT: false,
+       handleSIGTERM: false,
+-    }).catch(error => {
++    }).catch((error: { message: string; }) => {
+       if (error.message.includes('Executable doesn\'t exist'))
+         throw new Error(`Browser specified in your config is not installed. Either install it (likely) or change the config.`);
+       throw error;
+@@ -128,7 +139,7 @@ class CdpContextFactory extends BaseContextFactory {
+   }
+ 
+   protected override async _doObtainBrowser(): Promise<playwright.Browser> {
+-    return playwright.chromium.connectOverCDP(this.config.browser.cdpEndpoint!);
++    return customLaunchers.chromium.connectOverCDP(this.config.browser.cdpEndpoint!);
+   }
+ 
+   protected override async _doCreateContext(browser: playwright.Browser): Promise<playwright.BrowserContext> {
+@@ -146,7 +157,7 @@ class RemoteContextFactory extends BaseContextFactory {
+     url.searchParams.set('browser', this.config.browser.browserName);
+     if (this.config.browser.launchOptions)
+       url.searchParams.set('launch-options', JSON.stringify(this.config.browser.launchOptions));
+-    return playwright[this.config.browser.browserName].connect(String(url));
++    return customLaunchers[this.config.browser.browserName].connect(String(url));
+   }
+ 
+   protected override async _doCreateContext(browser: playwright.Browser): Promise<playwright.BrowserContext> {
+@@ -174,7 +185,7 @@ class PersistentContextFactory implements BrowserContextFactory {
+     this._userDataDirs.add(userDataDir);
+     testDebug('lock user data dir', userDataDir);
+ 
+-    const browserType = playwright[this.config.browser.browserName];
++    const browserType = customLaunchers[this.config.browser.browserName];
+     for (let i = 0; i < 5; i++) {
+       try {
+         const browserContext = await browserType.launchPersistentContext(userDataDir, {
+@@ -246,4 +257,4 @@ async function startTraceServer(config: FullConfig, rootPath: string | undefined
+   // eslint-disable-next-line no-console
+   console.error('\nTrace viewer listening on ' + url);
+   return tracesDir;
+-}
++}
+\ No newline at end of file
 diff --git a/tsconfig.json b/tsconfig.json
-index 114ce8b..0c04e53 100644
+index 114ce8b..477c2d3 100644
 --- a/tsconfig.json
 +++ b/tsconfig.json
-@@ -7,7 +7,8 @@
+@@ -7,9 +7,10 @@
      "module": "NodeNext",
      "rootDir": "src",
      "outDir": "./lib",
@@ -682,4 +731,10 @@ index 114ce8b..0c04e53 100644
 +    "skipLibCheck": true
    },
    "include": [
-     "src",
+-    "src",
+-  ],
+-}
++    "src"
++  ]
++}
+\ No newline at end of file
