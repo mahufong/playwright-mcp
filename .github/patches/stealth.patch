@@ -647,22 +647,23 @@ index bf1a012..37147a6 100644
    "devDependencies": {
      "@anthropic-ai/sdk": "^0.57.0",
 diff --git a/src/browserContextFactory.ts b/src/browserContextFactory.ts
-index 81072e1..c1c6dd7 100644
+index 81072e1..10f9441 100644
 --- a/src/browserContextFactory.ts
 +++ b/src/browserContextFactory.ts
-@@ -18,7 +18,16 @@ import fs from 'fs';
- import net from 'net';
+@@ -19,6 +19,18 @@ import net from 'net';
  import path from 'path';
  
--import * as playwright from 'playwright';
-+//import * as playwright from 'playwright';
-+import { chromium, firefox, webkit } from 'playwright-extra';
+ import * as playwright from 'playwright';
++
++// @ts-ignore
++import { chromium as chromiumExtra } from 'playwright-extra';
++// @ts-ignore
 +import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 +
-+// Add the stealth plugin to chromium
-+chromium.use(StealthPlugin());
++chromiumExtra.use(StealthPlugin());
 +
-+const playwright = { chromium, firefox, webkit };
++(playwright as any).chromium = chromiumExtra;
++
 +
 +
  // @ts-ignore
