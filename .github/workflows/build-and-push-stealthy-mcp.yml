@@ -3,8 +3,8 @@ name: Build and Push Stealthy MCP Image
 on:
   push:
     branches:
-      - main  # 当你向 main 分支推送时触发
-  workflow_dispatch: # 允许你手动触发
+      - main
+  workflow_dispatch:
 
 jobs:
   build-and-push:
@@ -22,33 +22,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           
-      - name: 📝 Patch package.json with stealth dependencies
-        run: |
-          # 使用 jq (一个命令行JSON处理器) 来动态添加依赖
-          # 这比用 sed 更健壮和安全
-          jq '.dependencies."playwright-extra" = "^4.3.6" | .dependencies."playwright-extra-plugin-stealth" = "^2.11.2"' package.json > package.json.tmp && mv package.json.tmp package.json
-          echo "✅ Patched package.json:"
-          cat package.json
-
-      - name: 📝 Patch server.ts to use playwright-extra
-        run: |
-          # 使用 sed 进行文本替换，这是最直接的方式
-          # 定义要插入的代码块。注意多行文本的处理和转义
-          PATCH_CODE="import { chromium } from 'playwright-extra';\nimport stealthPlugin from 'playwright-extra-plugin-stealth';\nimport type { Page, BrowserContext, Browser, CDPSession } from 'playwright-core';\n\nchromium.use(stealthPlugin());"
-          
-          # 在 src/server.ts 中，找到原始 import 语句并用我们的新代码块替换它
-          # The original line might span multiple lines in some formats, so we use a flexible pattern
-          sed -i.bak "/import { chromium, Page, BrowserContext, Browser, CDPSession } from 'playwright';/c\\$PATCH_CODE" src/server.ts
-          
-          echo "✅ Patched src/server.ts:"
-          head -n 10 src/server.ts # 显示文件的前10行以确认修改
-
-      - name: 🔄 Update package-lock.json
-        run: |
-          # 运行 npm install 来基于修改后的 package.json 生成新的 package-lock.json
-          # 这对于 `npm ci` 在 Dockerfile 中正确工作至关重要
-          npm install
-          echo "✅ Updated package-lock.json"
+      - name: 📝 Apply stealth patch
+        # 这个命令会读取我们的 patch 文件，并将所有修改应用到检出的代码上
+        run: git apply .github/patches/stealth.patch
 
       - name: 🏗️ Build and push Docker image
         uses: docker/build-push-action@v5
@@ -56,10 +32,6 @@ jobs:
           context: .
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/playwright-mcp-stealthy:latest
-          # 也可以添加其他 tags, 比如基于 commit SHA 的版本号
-          # tags: |
-          #  ${{ secrets.DOCKERHUB_USERNAME }}/playwright-mcp-stealthy:latest
-          #  ${{ secrets.DOCKERHUB_USERNAME }}/playwright-mcp-stealthy:${{ github.sha }}
 
       - name: ✅ Build summary
         run: echo "🎉 Successfully built and pushed image to ${{ secrets.DOCKERHUB_USERNAME }}/playwright-mcp-stealthy:latest"
