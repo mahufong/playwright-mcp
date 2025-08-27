@@ -647,7 +647,7 @@ index bf1a012..37147a6 100644
    "devDependencies": {
      "@anthropic-ai/sdk": "^0.57.0",
 diff --git a/src/browserContextFactory.ts b/src/browserContextFactory.ts
-index 81072e1..10f9441 100644
+index 81072e1..90ab3e7 100644
 --- a/src/browserContextFactory.ts
 +++ b/src/browserContextFactory.ts
 @@ -19,6 +19,18 @@ import net from 'net';
@@ -669,3 +669,17 @@ index 81072e1..10f9441 100644
  // @ts-ignore
  import { registryDirectory } from 'playwright-core/lib/server/registry/index';
  // @ts-ignore
+diff --git a/tsconfig.json b/tsconfig.json
+index 114ce8b..0c04e53 100644
+--- a/tsconfig.json
++++ b/tsconfig.json
+@@ -7,7 +7,8 @@
+     "module": "NodeNext",
+     "rootDir": "src",
+     "outDir": "./lib",
+-    "resolveJsonModule": true
++    "resolveJsonModule": true,
++    "skipLibCheck": true
+   },
+   "include": [
+     "src",
